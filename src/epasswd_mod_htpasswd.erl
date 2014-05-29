@@ -29,7 +29,8 @@
 %%% epasswd callbacks
 %%%
 -export([init/1,
-	 auth/2]).
+	 auth/2,
+	 share_group/3]).
 
 -define(NOT_LOADED, not_loaded(?LINE)).
 -on_load(load/0).
@@ -66,6 +67,12 @@ auth({User, Passwd}, #state{db=Db}=State) ->
 	_ ->
 	    {false, State}
     end.
+
+-spec share_group(User1 :: binary(), User2 :: binary(), state()) -> {true | false, state()}.
+share_group(User, User, State) ->
+    {true, State};
+share_group(_, _, State) ->
+    {false, State}.
 
 %%%
 %%% NIF

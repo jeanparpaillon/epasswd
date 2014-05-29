@@ -27,14 +27,17 @@
 
 %% API
 -export([start_link/0,
-	 auth/1]).
-
+	 auth/1,
+	 share_group/2]).
 
 -callback init(Opts :: term()) ->
     {ok, State :: term()} |
     {error, Reason :: term()}.
 
 -callback auth(Credentials :: term(), State :: term()) ->
+    true | false.
+
+-callback share_group(User1 :: term(), User2 :: term(), State :: term()) ->
     true | false.
 
 %% gen_server callbacks
@@ -60,9 +63,13 @@
 start_link() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
--spec auth({binary(), binary()}) -> true | false.
+-spec auth(term()) -> true | false.
 auth(Credentials) ->
     gen_server:call(?SERVER, {auth, Credentials}).
+
+-spec share_group(term(), term()) -> true | false.
+share_group(User1, User2) ->
+    gen_server:call(?SERVER, {share_group, User1, User2}).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -119,6 +126,13 @@ handle_call({auth, Credentials}, _From, #state{mod=Mod, state=S}=State) ->
     catch throw:Err ->
 	    {stop, Err, State}
     end;
+handle_call({share_group, User1, User2}, _From, #state{mod=Mod, state=S}=State) ->
+    try Mod:share_group(User1, User2, S) of
+	{Ret, S2} ->
+	    {reply, Ret, State#state{state=S2}}
+    catch throw:Err ->
+	    {stop, Err, State}
+    end;    
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
