@@ -27,12 +27,20 @@
 
 %% API
 -export([start_link/0,
-	 auth/1,
-	 share_group/2]).
+         auth/1,
+         share_group/2,
+         create_group/1,
+         create_ingroup/2,
+         delete_group/1,
+         delete_ingroup/1,
+         update_group/1, delete_user/1, create_user/2, get_groups/0, start/1]).
 
 -callback init(Opts :: term()) ->
     {ok, State :: term()} |
     {error, Reason :: term()}.
+
+-callback start(Opts :: term(), State :: term()) ->
+    true | false.
 
 -callback auth(Credentials :: term(), State :: term()) ->
     true | false.
@@ -40,14 +48,38 @@
 -callback share_group(User1 :: term(), User2 :: term(), State :: term()) ->
     true | false.
 
+-callback create_group(Group :: term(), State :: term()) ->
+    true | false.
+
+-callback delete_group(Group :: term(), State :: term()) ->
+    true | false.
+
+-callback create_ingroup(User :: term(), Group :: term(), State :: term()) ->
+    true | false.
+
+-callback delete_ingroup(InGroup :: term(), State :: term()) ->
+    true | false.
+
+-callback update_group(InGroup :: term(), State :: term()) ->
+    true | false.
+
+-callback create_user(Jid :: term(), User :: term(), State :: term()) ->
+    true | false.
+
+-callback delete_user(User :: term(), State :: term()) ->
+    true | false.
+
+-callback get_groups(State :: term()) ->
+    term().
+
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-	 terminate/2, code_change/3]).
+        terminate/2, code_change/3]).
 
 -define(SERVER, ?MODULE).
 
 -record(state, {mod      :: atom(),
-		state    :: term()}).
+                state    :: term()}).
 
 %%%===================================================================
 %%% API
@@ -71,6 +103,42 @@ auth(Credentials) ->
 share_group(User1, User2) ->
     gen_server:call(?SERVER, {share_group, User1, User2}).
 
+-spec create_group(term()) -> true | false.
+create_group(Group) ->
+    gen_server:call(?SERVER, {create_group, Group}).
+
+-spec delete_group(term()) -> true | false.
+delete_group(Group) ->
+    gen_server:call(?SERVER, {delete_group, Group}).
+
+-spec create_ingroup(term(), term()) -> true | false.
+create_ingroup(User, Group) ->
+    gen_server:call(?SERVER, {create_ingroup, User, Group}).
+
+-spec delete_ingroup(term()) -> true | false.
+delete_ingroup(InGroup) -> 
+    gen_server:call(?SERVER, {delete_ingroup, InGroup}).
+
+-spec update_group(term()) -> true | false.
+update_group(Group) ->
+    gen_server:call(?SERVER, {update_group, Group}).
+
+-spec create_user(term(), term()) -> true | false.
+create_user(Jid, User) ->
+    gen_server:call(?SERVER, {create_user, Jid, User}).
+
+-spec delete_user(term()) -> true | false.
+delete_user(User) ->
+    gen_server:call(?SERVER, {delete_user, User}).
+
+-spec get_groups() -> term().
+get_groups() -> 
+    gen_server:call(?SERVER, {get_groups}).
+
+-spec start(term()) -> true | false.
+start(Opts) -> 
+    gen_server:call(?SERVER, {start, Opts}).
+
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
@@ -88,21 +156,21 @@ share_group(User1, User2) ->
 %%--------------------------------------------------------------------
 init([]) ->
     case application:get_env(mod) of
-	{ok, {Mod, Opts}} ->
-	    RealMod = list_to_atom("epasswd_mod_" ++ atom_to_list(Mod)),
-	    case is_module(RealMod) of
-		true -> 
-		    try RealMod:init(Opts) of
-			State -> 
-			    {ok, #state{mod=RealMod, state=State}}
-		    catch throw:Err ->
-			    {stop, Err}
-		    end;
-		false ->
-		    {stop, {invalid_module, Mod}}
-	    end;
-	undefined ->
-	    {ok, #state{}}
+        {ok, {Mod, Opts}} ->
+        RealMod = list_to_atom("epasswd_mod_" ++ atom_to_list(Mod)),
+            case is_module(RealMod) of
+                true -> 
+                    try RealMod:init(Opts) of
+                        State -> 
+                            {ok, #state{mod=RealMod, state=State}}
+                    catch throw:Err ->
+                            {stop, Err}
+                    end;
+                false ->
+                        {stop, {invalid_module, Mod}}
+            end;
+        undefined ->
+            {ok, #state{}}
     end.
 
 %%--------------------------------------------------------------------
@@ -121,18 +189,81 @@ init([]) ->
 %%--------------------------------------------------------------------
 handle_call({auth, Credentials}, _From, #state{mod=Mod, state=S}=State) ->
     try Mod:auth(Credentials, S) of
-	{Ret, S2} ->
-	    {reply, Ret, State#state{state=S2}}
-    catch throw:Err ->
-	    {stop, Err, State}
+        {Ret, S2} ->
+            {reply, Ret, State#state{state=S2}}
+        catch throw:Err ->
+            {stop, Err, State}
     end;
 handle_call({share_group, User1, User2}, _From, #state{mod=Mod, state=S}=State) ->
     try Mod:share_group(User1, User2, S) of
-	{Ret, S2} ->
-	    {reply, Ret, State#state{state=S2}}
+    {Ret, S2} ->
+        {reply, Ret, State#state{state=S2}}
     catch throw:Err ->
-	    {stop, Err, State}
+    {stop, Err, State}
     end;    
+handle_call({create_group, Group}, _From, #state{mod=Mod, state=S}=State) ->
+    try Mod:create_group(Group, S) of
+    {Ret, S2} ->
+        {reply, Ret, State#state{state=S2}}
+    catch throw:Err ->
+    {stop, Err, State}
+    end;
+handle_call({delete_group, Group}, _From, #state{mod=Mod, state=S}=State) ->
+    try Mod:delete_group(Group, S) of
+    {Ret, S2} ->
+        {reply, Ret, State#state{state=S2}}
+    catch throw:Err ->
+    {stop, Err, State}
+    end;
+handle_call({create_ingroup, User, Group}, _From, #state{mod=Mod, state=S}=State) ->
+    try Mod:create_ingroup(User, Group, S) of
+    {Ret, S2} ->
+        {reply, Ret, State#state{state=S2}}
+    catch throw:Err ->
+    {stop, Err, State}
+    end;
+handle_call({delete_ingroup, InGroup}, _From, #state{mod=Mod, state=S}=State) ->
+    try Mod:delete_ingroup(InGroup, S) of
+    {Ret, S2} ->
+        {reply, Ret, State#state{state=S2}}
+    catch throw:Err ->
+        {stop, Err, State}
+    end;
+handle_call({update_group, Group}, _From, #state{mod=Mod, state=S}=State) ->
+    try Mod:update_group(Group, S) of
+    {Ret, S2} ->
+        {reply, Ret, State#state{state=S2}}
+    catch throw:Err ->
+        {stop, Err, State}
+    end;
+handle_call({create_user, Jid, User}, _From, #state{mod=Mod, state=S}=State) ->
+    try Mod:create_user(Jid, User, S) of
+    {Ret, S2} ->
+        {reply, Ret, State#state{state=S2}}
+    catch throw:Err ->
+        {stop, Err, State}
+    end;
+handle_call({delete_user, User}, _From, #state{mod=Mod, state=S}=State) ->
+    try Mod:delete_user(User, S) of
+    {Ret, S2} ->
+        {reply, Ret, State#state{state=S2}}
+    catch throw:Err ->
+        {stop, Err, State}
+    end;
+handle_call({get_groups}, _From, #state{mod=Mod, state=S}=State) ->
+    try Mod:get_groups(S) of
+    {Ret, S2} ->
+        {reply, Ret, State#state{state=S2}}
+    catch throw:Err ->
+        {stop, Err, State}
+    end;
+handle_call({start, Opts}, _From, #state{mod=Mod, state=S}=State) ->
+    try Mod:start(Opts, S) of
+    {Ret, S2} ->
+        {reply, Ret, State#state{state=S2}}
+    catch throw:Err ->
+        {stop, Err, State}
+    end;
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
@@ -193,8 +324,8 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 is_module(Mod) when is_atom(Mod) ->
     try Mod:module_info() of
-	_ -> true
-    catch _:_ -> false
-    end;
-is_module(_) -> 
-    false.
+        _ -> true
+        catch _:_ -> false
+        end;
+    is_module(_) -> 
+        false.
