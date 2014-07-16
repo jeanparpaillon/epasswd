@@ -30,8 +30,11 @@
 %%%
 -export([init/1,
          auth/2,
-         share_group/3, create_group/2, create_ingroup/3, create_user/3, delete_user/2,
-         delete_ingroup/2, delete_group/2, update_group/2, get_groups/1, start/2]).
+         share_group/3, create_group/2, create_ingroup/4, create_user/3, delete_user/2,
+         delete_ingroup/2, delete_group/2, get_groups/1, start/2,
+         update_user/3, update_group/3,
+         get_group/2, get_user/2, get_users/1,
+         get_ingroup/2, get_ingroups/1, get_group_user/2]).
 
 -define(NOT_LOADED, not_loaded(?LINE)).
 -on_load(load/0).
@@ -79,38 +82,65 @@ share_group(User, User, State) ->
 share_group(_, _, State) ->
     {false, State}.
 
--spec create_group(Group :: term(), state()) -> {true | false, state()}.
+-spec create_group(Group :: term(), state()) -> {ok | {error, term()}, state()}.
 create_group(_Group, State) ->
-    {false, State}.
+    {{error, unsupported_node}, State}.
 
--spec delete_group(Group :: term(), state()) -> {true | false, state()}.
+-spec delete_group(Group :: term(), state()) -> {ok | {error, term()}, state()}.
 delete_group(_Group, State) ->
-    {false, State}.
+    {{error, unsupported_node}, State}.
 
--spec create_ingroup(User :: term(), Group :: term(), state()) -> {true | false, state()}.
-create_ingroup(_User, _Group, State) ->
-    {false, State}.
+-spec create_ingroup(Idingroup :: term(), User :: term(), Group :: term(), state()) -> {ok | {error, term()}, state()}.
+create_ingroup(_Idingroup, _User, _Group, State) ->
+    {{error, unsupported_node}, State}.
 
--spec delete_ingroup(InGroup :: term(), state()) -> {true | false, state()}.
+-spec delete_ingroup(InGroup :: term(), state()) -> {ok | {error, term()}, state()}.
 delete_ingroup(_InGroup, State) ->
-    {false, State}.
+    {{error, unsupported_node}, State}.
 
--spec update_group(Group :: term(), state()) -> {true | false, state()}.
-update_group(_Group, State) ->
-    {false, State}.
+-spec update_group(Group :: term(), NGroup :: term(), state()) -> {ok | {error, term()}, state()}.
+update_group(_Group, _NGroup, State) ->
+    {{error, unsupported_node}, State}.
 
--spec create_user(Jid :: term(), User :: term(), state()) -> {true | false, state()}.
+-spec update_user(Jid :: term(), User :: term(), state()) -> {ok | {error, term()}, state()}.
+update_user(_Jid, _User, State) ->
+    {{error, unsupported_node}, State}.
+
+-spec create_user(Jid :: term(), User :: term(), state()) -> {ok | {error, term()}, state()}.
 create_user(_Jid, _User, State) ->
-    {false, State}.
+    {{error, unsupported_node}, State}.
 
--spec delete_user(User :: term(), state()) -> {true | false, state()}.
+-spec delete_user(User :: term(), state()) -> {ok | {error, term()}, state()}.
 delete_user(_User, State) ->
-    {false, State}.
+    {{error, unsupported_node}, State}.
 
 -spec get_groups(state()) -> {term(), state()}.
 get_groups(State) ->
     {[], State}.
 
+-spec get_users(state()) -> {term(), state()}.
+get_users(State) ->
+    {[], State}.
+
+-spec get_user(_User ::term(), state()) -> {term() | {error, term()}, state()}.
+get_user(_User, State) ->
+    {{error, unsupported_node}, State}.
+
+-spec get_group(_Group :: term(), state()) -> {term() | {error, term()}, state()}.
+get_group(_Group, State) ->
+    {{error, unsupported_node}, State}.
+
+-spec get_ingroups(state()) -> {term() | {error, term()}, state()}.
+get_ingroups(State) ->
+    {{error, unsupported_node}, State}.
+
+-spec get_ingroup(_Group :: term(), state()) -> {term() | {error, term()}, state()}.
+get_ingroup(_Group, State) ->
+    {{error, unsupported_node}, State}.
+
+-spec get_group_user(User :: term(), state()) -> {term(), state()}.
+get_group_user(_User, State) ->
+    {[], State}.
 %%%
 %%% NIF
 %%%
